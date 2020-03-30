@@ -171,7 +171,7 @@
     components.day = - (weekdayComponents.weekday - self.firstWeekday);
     components.day = (components.day-7) % 7;
     NSDate *firstDayOfWeek = [self dateByAddingComponents:components toDate:week options:0];
-    firstDayOfWeek = [self dateBySettingHour:0 minute:0 second:0 ofDate:firstDayOfWeek options:0];
+    firstDayOfWeek = [self fs_midnightOfDay:firstDayOfWeek];
     components.day = NSIntegerMax;
     return firstDayOfWeek;
 }
@@ -184,7 +184,7 @@
     components.day = - (weekdayComponents.weekday - self.firstWeekday);
     components.day = (components.day-7) % 7 + 6;
     NSDate *lastDayOfWeek = [self dateByAddingComponents:components toDate:week options:0];
-    lastDayOfWeek = [self dateBySettingHour:0 minute:0 second:0 ofDate:lastDayOfWeek options:0];
+    lastDayOfWeek = [self fs_midnightOfDay:lastDayOfWeek];
     components.day = NSIntegerMax;
     return lastDayOfWeek;
 }
@@ -214,6 +214,20 @@
                                         inUnit:NSCalendarUnitMonth
                                        forDate:month];
     return days.length;
+}
+
+- (nullable NSDate *)fs_midnightOfDay:(NSDate *)date {
+    return [self startOfDayForDate: date];
+//    NSDateComponents *yearComponents = [self components:NSCalendarUnitYear fromDate:date];
+//    NSDate *finalDate;
+//    if (yearComponents.year > 1900) {
+//        finalDate = [self dateBySettingHour:0 minute:0 second:0 ofDate:date options:0];
+//    } else {
+//        NSDate *tempDateA = [self dateBySettingUnit:NSCalendarUnitHour value:0 ofDate:date options:0];
+//        NSDate *tempDateB = [self dateBySettingUnit:NSCalendarUnitMinute value:0 ofDate:tempDateA options:0];
+//        finalDate = [self dateBySettingUnit:NSCalendarUnitSecond value:0 ofDate:tempDateB options:0];
+//    }
+//    return finalDate;
 }
 
 - (NSDateComponents *)fs_privateComponents
