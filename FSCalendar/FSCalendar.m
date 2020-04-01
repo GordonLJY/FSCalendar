@@ -23,10 +23,10 @@ NS_ASSUME_NONNULL_BEGIN
 
 static inline void FSCalendarAssertDateInBounds(NSDate *date, NSCalendar *calendar, NSDate *minimumDate, NSDate *maximumDate) {
     BOOL valid = YES;
-    NSInteger minOffset = [calendar components:NSCalendarUnitDay fromDate:minimumDate toDate:date options:0].day;
+    NSInteger minOffset = [calendar normalizedDaysFromDate:minimumDate toDate:date];
     valid &= minOffset >= 0;
     if (valid) {
-        NSInteger maxOffset = [calendar components:NSCalendarUnitDay fromDate:maximumDate toDate:date options:0].day;
+        NSInteger maxOffset = [calendar normalizedDaysFromDate:maximumDate toDate:date];
         valid &= maxOffset <= 0;
     }
     if (!valid) {
@@ -699,8 +699,9 @@ typedef NS_ENUM(NSUInteger, FSCalendarOrientation) {
     if (!today) {
         _today = nil;
     } else {
-        FSCalendarAssertDateInBounds(today,self.gregorian,self.minimumDate,self.maximumDate);
-        _today = [self.gregorian fs_midnightOfDay:today];
+        NSDate *startOfDay = [self.gregorian fs_midnightOfDay:today];
+        FSCalendarAssertDateInBounds(startOfDay,self.gregorian,self.minimumDate,self.maximumDate);
+        _today = startOfDay;
     }
     if (self.hasValidateVisibleLayout) {
         [self.visibleCells makeObjectsPerformSelector:@selector(setDateIsToday:) withObject:nil];
@@ -1057,9 +1058,9 @@ typedef NS_ENUM(NSUInteger, FSCalendarOrientation) {
         
     [self requestBoundingDatesIfNecessary];
     
-    FSCalendarAssertDateInBounds(date,self.gregorian,self.minimumDate,self.maximumDate);
-    
     NSDate *targetDate = [self.gregorian fs_midnightOfDay:date];
+    FSCalendarAssertDateInBounds(targetDate,self.gregorian,self.minimumDate,self.maximumDate);
+    
     NSIndexPath *targetIndexPath = [self.calculator indexPathForDate:targetDate];
     
     BOOL shouldSelect = YES;
@@ -1205,8 +1206,8 @@ typedef NS_ENUM(NSUInteger, FSCalendarOrientation) {
 - (BOOL)isDateInRange:(NSDate *)date
 {
     BOOL flag = YES;
-    flag &= [self.gregorian components:NSCalendarUnitDay fromDate:date toDate:self.minimumDate options:0].day <= 0;
-    flag &= [self.gregorian components:NSCalendarUnitDay fromDate:date toDate:self.maximumDate options:0].day >= 0;;
+    flag &= [self.gregorian normalizedDaysFromDate:date toDate:self.minimumDate] <= 0;
+    flag &= [self.gregorian normalizedDaysFromDate:date toDate:self.maximumDate] >= 0;
     return flag;
 }
 
@@ -1215,19 +1216,19 @@ typedef NS_ENUM(NSUInteger, FSCalendarOrientation) {
     BOOL flag = YES;
     switch (self.transitionCoordinator.representingScope) {
         case FSCalendarScopeMonth: {
-            NSDateComponents *c1 = [self.gregorian components:NSCalendarUnitDay fromDate:[self.gregorian fs_firstDayOfMonth:self.minimumDate] toDate:page options:0];
-            flag &= (c1.day>=0);
+            NSInteger day1 = [self.gregorian normalizedDaysFromDate:[self.gregorian fs_firstDayOfMonth:self.minimumDate] toDate:page];
+            flag &= (day1>=0);
             if (!flag) break;
-            NSDateComponents *c2 = [self.gregorian components:NSCalendarUnitDay fromDate:page toDate:[self.gregorian fs_lastDayOfMonth:self.maximumDate] options:0];
-            flag &= (c2.day>=0);
+            NSInteger day2 = [self.gregorian normalizedDaysFromDate:page toDate:[self.gregorian fs_lastDayOfMonth:self.maximumDate]];
+            flag &= (day2>=0);
             break;
         }
         case FSCalendarScopeWeek: {
-            NSDateComponents *c1 = [self.gregorian components:NSCalendarUnitDay fromDate:[self.gregorian fs_firstDayOfWeek:self.minimumDate] toDate:page options:0];
-            flag &= (c1.day>=0);
+            NSInteger day1 = [self.gregorian normalizedDaysFromDate:[self.gregorian fs_firstDayOfWeek:self.minimumDate] toDate:page];
+            flag &= (day1>=0);
             if (!flag) break;
-            NSDateComponents *c2 = [self.gregorian components:NSCalendarUnitDay fromDate:page toDate:[self.gregorian fs_lastDayOfWeek:self.maximumDate] options:0];
-            flag &= (c2.day>=0);
+            NSInteger day2 = [self.gregorian normalizedDaysFromDate:page toDate:[self.gregorian fs_lastDayOfWeek:self.maximumDate]];
+            flag &= (day2>=0);
             break;
         }
         default:
@@ -1382,7 +1383,13 @@ typedef NS_ENUM(NSUInteger, FSCalendarOrientation) {
     cell.numberOfEvents = [self.dataSourceProxy calendar:self numberOfEventsForDate:date];
     cell.titleLabel.text = [self.dataSourceProxy calendar:self titleForDate:date] ?: @([self.gregorian component:NSCalendarUnitDay fromDate:date]).stringValue;
     cell.subtitle  = [self.dataSourceProxy calendar:self subtitleForDate:date];
-    cell.selected = [_selectedDates containsObject:date];
+    for(int i = 0; i < [_selectedDates count]; i++ ) {
+        NSDate *selectedDate = _selectedDates[i];
+        if ([self.gregorian isDate:selectedDate inSameDayAsDate:date]) {
+            cell.selected = YES;
+            break;
+        }
+    }
     cell.dateIsToday = self.today?[self.gregorian isDate:date inSameDayAsDate:self.today]:NO;
     cell.weekend = [self.gregorian isDateInWeekend:date];
     cell.monthPosition = [self.calculator monthPositionForIndexPath:indexPath];

@@ -216,7 +216,8 @@
     return days.length;
 }
 
-- (nullable NSDate *)fs_midnightOfDay:(NSDate *)date {
+- (nullable NSDate *)fs_midnightOfDay:(NSDate *)date
+{
     return [self startOfDayForDate: date];
 //    NSDateComponents *yearComponents = [self components:NSCalendarUnitYear fromDate:date];
 //    NSDate *finalDate;
@@ -228,6 +229,37 @@
 //        finalDate = [self dateBySettingUnit:NSCalendarUnitSecond value:0 ofDate:tempDateB options:0];
 //    }
 //    return finalDate;
+}
+
+- (NSInteger)normalizedDaysFromDate:(NSDate *)startDate
+{
+    int offset = 0;
+    NSDateComponents *components = [self components:(NSCalendarUnitDay|NSCalendarUnitHour) fromDate:startDate];
+    if (components.hour >= 22) {
+        offset = 1;
+    }
+    return components.day + offset;
+}
+
+- (NSInteger)normalizedDaysFromDate:(NSDate *)startDate toDate:(NSDate *)endDate
+{
+    int offset = 0;
+    NSDateComponents *components = [self components:(NSCalendarUnitDay|NSCalendarUnitHour) fromDate:startDate toDate:endDate options:0];
+    if (components.hour >= 22) {
+        offset = 1;
+    }
+    return components.day + offset;
+}
+
+- (NSInteger)normalizedMonthFromDate:(NSDate *)startDate toDate:(NSDate *)endDate
+{
+    NSDate *normalizedStartDate = startDate;
+    NSDateComponents *startYearComponent = [self components:(NSCalendarUnitYear) fromDate:startDate];
+    if (startYearComponent.year == 1901) {
+        normalizedStartDate = [self dateByAddingUnit:NSCalendarUnitHour value:-2 toDate:startDate options:0];
+    }
+    NSDateComponents *components = [self components:(NSCalendarUnitMonth) fromDate:normalizedStartDate toDate:endDate options:0];
+    return components.month;
 }
 
 - (NSDateComponents *)fs_privateComponents
