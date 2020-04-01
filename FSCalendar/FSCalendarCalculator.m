@@ -125,7 +125,6 @@
             }
             NSDate *head = [self monthHeadForSection:section];
             item = [self.gregorian normalizedDaysFromDate:head toDate:date];
-            NSLog([NSString stringWithFormat:@"section: %d item: %d", section, item]);
             break;
         }
         case FSCalendarScopeWeek: {
